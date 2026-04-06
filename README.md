@@ -43,6 +43,8 @@ Tipo: I; rd = 8; funct3 = 0; rs1 = 0; imm = 5
 - Python
 - Arquitetura RISC-V
 
+<br>
+
 # Como rodar
 - python riscv_parser.py instrucoes.txt
 
