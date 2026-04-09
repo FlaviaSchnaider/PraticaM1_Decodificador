@@ -25,10 +25,17 @@ def hex_para_binario(hex_str):
     """Converte uma string hexadecimal para binário (32 bits)"""
     return format(int(hex_str, 16), '032b')
 
+def binario_para_signed(valor_bin, bits):
+    """Converte um valor binário para inteiro com sinal"""
+    valor = int(valor_bin, 2)
+    if valor >= 2**(bits - 1):
+        valor -= 2**bits
+    return valor
+
 def interpretar_instrucao(instr_bin):
     """Interpreta uma instrução binária RISC-V"""
     opcode = instr_bin[25:32]
-    tipo = TIPO_OPCODE.get(opcode, "DESCONHECIDO")
+    tipo = TIPO_OPCODE.get(opcode)
 
     resultado = {"tipo": tipo, "opcode": opcode}
 
@@ -46,7 +53,7 @@ def interpretar_instrucao(instr_bin):
             "rd": int(instr_bin[20:25], 2),
             "funct3": int(instr_bin[17:20], 2),
             "rs1": int(instr_bin[12:17], 2),
-            "imm": int(instr_bin[0:12], 2)
+            "imm": binario_para_signed(instr_bin[0:12], 12)
         })
 
     elif tipo == "S":
@@ -55,7 +62,7 @@ def interpretar_instrucao(instr_bin):
             "funct3": int(instr_bin[17:20], 2),
             "rs1": int(instr_bin[12:17], 2),
             "rs2": int(instr_bin[7:12], 2),
-            "imm": int(imediato, 2)
+            "imm": binario_para_signed(imediato, 12)
         })
 
     elif tipo == "B":
@@ -64,26 +71,36 @@ def interpretar_instrucao(instr_bin):
             "funct3": int(instr_bin[17:20], 2),
             "rs1": int(instr_bin[12:17], 2),
             "rs2": int(instr_bin[7:12], 2),
-            "imm": int(imediato, 2)
+            "imm": binario_para_signed(imediato, 13)
         })
 
     elif tipo == "U":
         resultado.update({
             "rd": int(instr_bin[20:25], 2),
-            "imm": int(instr_bin[0:20], 2)
+            "imm": int(instr_bin[0:20], 2) << 12
         })
 
     elif tipo == "J":
         imediato = instr_bin[0] + instr_bin[12:20] + instr_bin[11] + instr_bin[1:11] + "0"
         resultado.update({
             "rd": int(instr_bin[20:25], 2),
-            "imm": int(imediato, 2)
+            "imm": binario_para_signed(imediato, 21)
         })
 
     return resultado
 
 def processar_arquivo(caminho_arquivo):
     """Lê e processa instruções de um arquivo"""
+
+    contagem = {
+        "R": 0,
+        "I": 0,
+        "S": 0,
+        "B": 0,
+        "U": 0,
+        "J": 0,
+    }
+
     with open(caminho_arquivo, 'r') as arquivo:
         linhas = arquivo.readlines()
 
@@ -100,7 +117,15 @@ def processar_arquivo(caminho_arquivo):
             instr_bin = hex_para_binario(linha.replace("0x", ""))
 
         resultado = interpretar_instrucao(instr_bin)
+        contagem[resultado["tipo"]] += 1
+
+        print()
         print(f"{linha} -> {resultado}")
+
+    print()
+    print("CONTAGEM DE INSTRUÇÕES:")
+    for tipo, qtd in contagem.items():
+        print(f"Total do tipo {tipo}: {qtd}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
